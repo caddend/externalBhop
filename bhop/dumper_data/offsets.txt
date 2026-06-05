@@ -1,0 +1,4 @@
+dwEntityList=38692240
+dwLocalPlayerController=36828928
+dwLocalPlayerPawn=36963992
+m_fFlags=1016
