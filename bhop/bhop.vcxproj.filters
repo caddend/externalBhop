@@ -21,12 +21,18 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Triggerbot.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GameMemory.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\x64\Release\Offsets.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Triggerbot.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

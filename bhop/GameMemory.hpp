@@ -8,14 +8,15 @@
 #include <sstream>
 #include <thread>
 
-// Динамическая структура оффсетов в памяти C++
 namespace offsets {
     inline uintptr_t dwEntityList = 0;
     inline uintptr_t dwLocalPlayerController = 0;
     inline uintptr_t dwLocalPlayerPawn = 0;
     inline uintptr_t m_fFlags = 0;
+    inline uintptr_t m_iIDEntIndex = 0;
+    inline uintptr_t m_iHealth = 0;   // Добавлено
+    inline uintptr_t m_iTeamNum = 0;  // Добавлено
 
-    // Статичные внутренние смещения контроллера
     namespace controller {
         constexpr uintptr_t m_hPawn = 0x6BC;
     }
@@ -38,11 +39,12 @@ public:
     GameMemory() = default;
     ~GameMemory() { Detach(); }
 
-    bool RunAutoupdater();  // Метод запуска питона
-    bool LoadOffsetsTxt();  // Метод парсинга txt
+    bool RunAutoupdater();
+    bool LoadOffsetsTxt();
     bool Attach(const wchar_t* processName);
     void Detach();
 
+    // Универсальный шаблон чтения памяти
     template <typename T>
     T Read(uintptr_t address) {
         T buffer{};

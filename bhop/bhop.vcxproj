@@ -127,10 +127,12 @@
   <ItemGroup>
     <ClCompile Include="GameMemory.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Triggerbot.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\x64\Release\Offsets.hpp" />
     <ClInclude Include="GameMemory.hpp" />
+    <ClInclude Include="Triggerbot.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

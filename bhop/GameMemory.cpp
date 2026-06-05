@@ -1,6 +1,8 @@
 #include "GameMemory.hpp"
-#pragma comment(lib, "winmm.lib")
-// Запуск скрипта автоматического обновления оффсетов
+#include <chrono>
+
+#pragma comment(lib, "winmm.lib") // Библиотека для работы мультимедийных таймеров Windows
+
 bool GameMemory::RunAutoupdater() {
     CreateDirectoryA(".\\dumper_data", NULL);
 
@@ -16,14 +18,16 @@ bool GameMemory::RunAutoupdater() {
     return (result == 0);
 }
 
-// Чтение текстового файла конфигурации, созданного Python
 bool GameMemory::LoadOffsetsTxt() {
     std::ifstream file(".\\dumper_data\\offsets.txt");
-    if (!file.is_open()) return false;
+    if (!file.is_open()) {
+        std::cout << "[-] Ошибка: Не удалось физически открыть файл offsets.txt!" << std::endl;
+        return false;
+    }
 
     std::string line;
     while (std::getline(file, line)) {
-        std::istringstream ss(line); // ИСПРАВЛЕНО: убрана лишняя 'i'
+        std::istringstream ss(line);
         std::string key;
         std::string valueStr;
 
@@ -34,11 +38,29 @@ bool GameMemory::LoadOffsetsTxt() {
             else if (key == "dwLocalPlayerController") offsets::dwLocalPlayerController = value;
             else if (key == "dwLocalPlayerPawn") offsets::dwLocalPlayerPawn = value;
             else if (key == "m_fFlags") offsets::m_fFlags = value;
+            else if (key == "m_iIDEntIndex") offsets::m_iIDEntIndex = value;
+            else if (key == "m_iHealth") offsets::m_iHealth = value;
+            else if (key == "m_iTeamNum") offsets::m_iTeamNum = value;
         }
     }
     file.close();
 
-    return (offsets::dwLocalPlayerPawn != 0 && offsets::m_fFlags != 0);
+    // Выводим детальный лог загрузки для дебага
+    std::cout << "[*] Проверка загруженных оффсетов:" << std::endl;
+    std::cout << "  -> dwEntityList: 0x" << std::hex << offsets::dwEntityList << std::endl;
+    std::cout << "  -> dwLocalPlayerPawn: 0x" << std::hex << offsets::dwLocalPlayerPawn << std::endl;
+    std::cout << "  -> m_fFlags: 0x" << std::hex << offsets::m_fFlags << std::endl;
+    std::cout << "  -> m_iIDEntIndex: 0x" << std::hex << offsets::m_iIDEntIndex << std::endl;
+    std::cout << "  -> m_iHealth: 0x" << std::hex << offsets::m_iHealth << std::endl;
+    std::cout << "  -> m_iTeamNum: 0x" << std::hex << offsets::m_iTeamNum << std::endl;
+
+    // Проверяем только самые критичные базовые адреса, чтобы софт не падал из-за индекса прицела
+    if (offsets::dwLocalPlayerPawn == 0 || offsets::m_fFlags == 0) {
+        std::cout << "[-] Ошибка: Базовые оффсеты (Pawn/Flags) равны нулю!" << std::endl;
+        return false;
+    }
+
+    return true;
 }
 
 bool GameMemory::Attach(const wchar_t* processName) {
@@ -96,11 +118,6 @@ uintptr_t GameMemory::GetModuleBaseAddress(const wchar_t* moduleName) {
     return addr;
 }
 
-#pragma region BunnyHop
-
-// Подключаем необходимые заголовки для высокоточных таймеров процессора
-#include <chrono>
-
 void GameMemory::StartBhop() {
     if (isBhopRunning) return;
     isBhopRunning = true;
@@ -115,11 +132,7 @@ void GameMemory::StopBhop() {
 }
 
 void GameMemory::BhopLoop() {
-    // 1. Форсируем максимальный приоритет потока реального времени в ОС
     SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
-
-    // 2. Переводим системный таймер Windows в режим максимальной точности (1 мс)
-    // Без этого sleep_for() округляет задержки до 15.6 миллисекунд
     timeBeginPeriod(1);
 
     HWND gameWindow = FindWindowW(L"SDL_app", L"Counter-Strike 2");
@@ -128,7 +141,6 @@ void GameMemory::BhopLoop() {
     LPARAM LParamDown = 1 | (0x39 << 16);
     LPARAM LParamUp = 1 | (0x39 << 16) | (1 << 30) | (1 << 31);
 
-    // Получаем частоту аппаратного таймера процессора для Spin-lock
     LARGE_INTEGER frequency;
     QueryPerformanceFrequency(&frequency);
 
@@ -140,27 +152,21 @@ void GameMemory::BhopLoop() {
             if (localPawn && gameWindow) {
                 int flags = Read<int>(localPawn + offsets::m_fFlags);
 
-                // Проверяем флаг приземления FL_ONGROUND
                 if (flags & (1 << 0)) {
-
-                    // Шлем идеальный клик в момент коллизии с землей
                     PostMessageA(gameWindow, WM_KEYDOWN, VK_SPACE, LParamDown);
 
-                    // Высокоточный аппаратный спин-лок на 4 миллисекунды (время удержания клавиши)
-                    // Это гарантирует, что кнопка отожмется ровно тогда, когда нужно, без задержек ОС
+                    // Ультра-точный аппаратный спин-лок удержания на 4мс
                     LARGE_INTEGER start, current;
                     QueryPerformanceCounter(&start);
-                    long long ticksToWait = (frequency.QuadPart * 4000) / 1000000; // 4000 микросекунд = 4 мс
+                    long long ticksToWait = (frequency.QuadPart * 4000) / 1000000;
 
                     do {
                         QueryPerformanceCounter(&current);
                     } while ((current.QuadPart - start.QuadPart) < ticksToWait);
 
-                    // Отжимаем клавишу
                     PostMessageA(gameWindow, WM_KEYUP, VK_SPACE, LParamUp);
 
-                    // Кулдаун: пока моделька летит вверх, спим 12 мс на уровне ядра ОС,
-                    // чтобы разгрузить процессор и не поймать штраф скорости (Speed Penalty)
+                    // Кулдаун пропуска просадок субтика
                     std::this_thread::sleep_for(std::chrono::milliseconds(12));
                 }
             }
@@ -170,8 +176,5 @@ void GameMemory::BhopLoop() {
         }
     }
 
-    // Возвращаем настройки таймера Windows в исходное состояние при выходе
     timeEndPeriod(1);
 }
-
-#pragma endregion
