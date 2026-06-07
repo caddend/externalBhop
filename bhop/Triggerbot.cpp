@@ -1,4 +1,5 @@
 #include "Triggerbot.hpp"
+#include <iostream>
 #include <chrono>
 
 #pragma comment(lib, "winmm.lib")
@@ -18,8 +19,10 @@ void Triggerbot::Stop() {
 }
 
 void Triggerbot::TriggerLoop() {
-    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
-    timeBeginPeriod(1);
+    std::cout << "[Triggerbot] Запущен, клавиша: " << triggerKey << std::endl;
+
+    int lastHandle = 0;
+    int shotCounter = 0;
 
     while (isTriggerRunning) {
         if (GetAsyncKeyState(triggerKey) & 0x8000) {
@@ -27,29 +30,37 @@ void Triggerbot::TriggerLoop() {
             uintptr_t localPawn = memory.Read<uintptr_t>(memory.clientAddress + offsets::dwLocalPlayerPawn);
 
             if (localPawn) {
-                // Читаем индекс объекта под прицелом
                 int crosshairHandle = memory.Read<int>(localPawn + offsets::m_iIDEntIndex);
-                int crosshairId = crosshairHandle & 0x1FF;
 
-                // Если прицел зацепил ЛЮБОГО игрока или бота (индексы от 1 до 128)
-                if (crosshairHandle > 0 && crosshairId > 0 && crosshairId <= 128) {
+                if (crosshairHandle != lastHandle && crosshairHandle != 0xFFFFFFFF && crosshairHandle != 0) {
+                    std::cout << "[Triggerbot] Handle: 0x" << std::hex << crosshairHandle << std::dec << std::endl;
+                    lastHandle = crosshairHandle;
+                }
 
-                    // МГНОВЕННЫЙ ВЫСТРЕЛ ЧЕРЕЗ СИМУЛЯЦИЮ КЛИКА МЫШИ (mouse_event)
-                    // Этот метод пробивает любую блокировку оконного ввода в Windows
-                    mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
-                    std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Держим ЛКМ 10 мс
-                    mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+                if (crosshairHandle > 0 && crosshairHandle != 0xFFFFFFFF && crosshairHandle != 0) {
+                    shotCounter++;
+                    std::cout << "[Triggerbot] >>> ВЫСТРЕЛ #" << shotCounter << " <<<" << std::endl;
 
-                    // Кулдаун между выстрелами, чтобы не было дикого зажима
-                    std::this_thread::sleep_for(std::chrono::milliseconds(180));
+                    INPUT input = { 0 };
+                    input.type = INPUT_MOUSE;
+                    input.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+                    SendInput(1, &input, sizeof(INPUT));
+
+                    Sleep(8);
+
+                    input.mi.dwFlags = MOUSEEVENTF_LEFTUP;
+                    SendInput(1, &input, sizeof(INPUT));
+
+                    Sleep(120);
                 }
             }
-            std::this_thread::sleep_for(std::chrono::microseconds(500));
+
+            Sleep(5);
         }
         else {
-            std::this_thread::sleep_for(std::chrono::milliseconds(8));
+            Sleep(5);
         }
     }
 
-    timeEndPeriod(1);
+    std::cout << "[Triggerbot] Остановлен" << std::endl;
 }

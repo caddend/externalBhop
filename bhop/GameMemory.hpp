@@ -14,12 +14,12 @@ namespace offsets {
     inline uintptr_t dwLocalPlayerPawn = 0;
     inline uintptr_t m_fFlags = 0;
     inline uintptr_t m_iIDEntIndex = 0;
-    inline uintptr_t m_iHealth = 0;   // Добавлено
-    inline uintptr_t m_iTeamNum = 0;  // Добавлено
-
-    namespace controller {
-        constexpr uintptr_t m_hPawn = 0x6BC;
-    }
+    inline uintptr_t m_iHealth = 0;
+    inline uintptr_t m_iTeamNum = 0;
+    inline uintptr_t m_vecViewOffset = 0;
+    inline uintptr_t m_angEyeAngles = 0;
+    inline uintptr_t m_hPlayerPawn = 0;
+    inline uintptr_t m_hPawn = 0;
 }
 
 struct Vector3 { float x, y, z; };
@@ -44,7 +44,6 @@ public:
     bool Attach(const wchar_t* processName);
     void Detach();
 
-    // Универсальный шаблон чтения памяти
     template <typename T>
     T Read(uintptr_t address) {
         T buffer{};

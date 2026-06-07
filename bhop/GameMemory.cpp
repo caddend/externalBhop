@@ -1,27 +1,18 @@
-#include "GameMemory.hpp"
+п»ї#include "GameMemory.hpp"
 #include <chrono>
 
-#pragma comment(lib, "winmm.lib") // Библиотека для работы мультимедийных таймеров Windows
+#pragma comment(lib, "winmm.lib")
 
 bool GameMemory::RunAutoupdater() {
     CreateDirectoryA(".\\dumper_data", NULL);
-
-    std::cout << "[+] Запуск встроенного скрипта обновления оффсетов..." << std::endl;
-
-    std::string command = "python .\\dumper_data\\parser.py";
-    int result = system(command.c_str());
-    if (result != 0) {
-        command = "python3 .\\dumper_data\\parser.py";
-        result = system(command.c_str());
-    }
-
-    return (result == 0);
+    std::cout << "[+] Р—Р°РїСѓСЃРє РІСЃС‚СЂРѕРµРЅРЅРѕРіРѕ СЃРєСЂРёРїС‚Р° РѕР±РЅРѕРІР»РµРЅРёСЏ РѕС„С„СЃРµС‚РѕРІ..." << std::endl;
+    return true;
 }
 
 bool GameMemory::LoadOffsetsTxt() {
     std::ifstream file(".\\dumper_data\\offsets.txt");
     if (!file.is_open()) {
-        std::cout << "[-] Ошибка: Не удалось физически открыть файл offsets.txt!" << std::endl;
+        std::cout << "[-] РћС€РёР±РєР°: РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РєСЂС‹С‚СЊ С„Р°Р№Р» offsets.txt!" << std::endl;
         return false;
     }
 
@@ -41,22 +32,23 @@ bool GameMemory::LoadOffsetsTxt() {
             else if (key == "m_iIDEntIndex") offsets::m_iIDEntIndex = value;
             else if (key == "m_iHealth") offsets::m_iHealth = value;
             else if (key == "m_iTeamNum") offsets::m_iTeamNum = value;
+            else if (key == "m_vecViewOffset") offsets::m_vecViewOffset = value;
+            else if (key == "m_hPlayerPawn") offsets::m_hPlayerPawn = value;
+            else if (key == "m_hPawn") offsets::m_hPawn = value;
         }
     }
     file.close();
 
-    // Выводим детальный лог загрузки для дебага
-    std::cout << "[*] Проверка загруженных оффсетов:" << std::endl;
+    std::cout << "[*] РџСЂРѕРІРµСЂРєР° Р·Р°РіСЂСѓР¶РµРЅРЅС‹С… РѕС„С„СЃРµС‚РѕРІ:" << std::endl;
     std::cout << "  -> dwEntityList: 0x" << std::hex << offsets::dwEntityList << std::endl;
-    std::cout << "  -> dwLocalPlayerPawn: 0x" << std::hex << offsets::dwLocalPlayerPawn << std::endl;
-    std::cout << "  -> m_fFlags: 0x" << std::hex << offsets::m_fFlags << std::endl;
-    std::cout << "  -> m_iIDEntIndex: 0x" << std::hex << offsets::m_iIDEntIndex << std::endl;
-    std::cout << "  -> m_iHealth: 0x" << std::hex << offsets::m_iHealth << std::endl;
-    std::cout << "  -> m_iTeamNum: 0x" << std::hex << offsets::m_iTeamNum << std::endl;
+    std::cout << "  -> dwLocalPlayerPawn: 0x" << offsets::dwLocalPlayerPawn << std::endl;
+    std::cout << "  -> m_fFlags: 0x" << offsets::m_fFlags << std::endl;
+    std::cout << "  -> m_iIDEntIndex: 0x" << offsets::m_iIDEntIndex << std::endl;
+    std::cout << "  -> m_iHealth: 0x" << offsets::m_iHealth << std::endl;
+    std::cout << "  -> m_iTeamNum: 0x" << offsets::m_iTeamNum << std::dec << std::endl;
 
-    // Проверяем только самые критичные базовые адреса, чтобы софт не падал из-за индекса прицела
     if (offsets::dwLocalPlayerPawn == 0 || offsets::m_fFlags == 0) {
-        std::cout << "[-] Ошибка: Базовые оффсеты (Pawn/Flags) равны нулю!" << std::endl;
+        std::cout << "[-] РћС€РёР±РєР°: Р‘Р°Р·РѕРІС‹Рµ РѕС„С„СЃРµС‚С‹ СЂР°РІРЅС‹ РЅСѓР»СЋ!" << std::endl;
         return false;
     }
 
@@ -155,7 +147,7 @@ void GameMemory::BhopLoop() {
                 if (flags & (1 << 0)) {
                     PostMessageA(gameWindow, WM_KEYDOWN, VK_SPACE, LParamDown);
 
-                    // Ультра-точный аппаратный спин-лок удержания на 4мс
+                    // Г“Г«ГјГІГ°Г -ГІГ®Г·Г­Г»Г© Г ГЇГЇГ Г°Г ГІГ­Г»Г© Г±ГЇГЁГ­-Г«Г®ГЄ ГіГ¤ГҐГ°Г¦Г Г­ГЁГї Г­Г  4Г¬Г±
                     LARGE_INTEGER start, current;
                     QueryPerformanceCounter(&start);
                     long long ticksToWait = (frequency.QuadPart * 4000) / 1000000;
@@ -166,7 +158,7 @@ void GameMemory::BhopLoop() {
 
                     PostMessageA(gameWindow, WM_KEYUP, VK_SPACE, LParamUp);
 
-                    // Кулдаун пропуска просадок субтика
+                    // ГЉГіГ«Г¤Г ГіГ­ ГЇГ°Г®ГЇГіГ±ГЄГ  ГЇГ°Г®Г±Г Г¤Г®ГЄ Г±ГіГЎГІГЁГЄГ 
                     std::this_thread::sleep_for(std::chrono::milliseconds(12));
                 }
             }

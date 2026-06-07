@@ -133,6 +133,7 @@
     <ClInclude Include="..\x64\Release\Offsets.hpp" />
     <ClInclude Include="GameMemory.hpp" />
     <ClInclude Include="Triggerbot.hpp" />
+    <ClInclude Include="Updater.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
